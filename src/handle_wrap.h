@@ -73,6 +73,8 @@ class HandleWrap : public AsyncWrap {
 
   inline uv_handle_t* GetHandle() const { return handle_; }
 
+  uint64_t quiesce_generation() const { return quiesce_generation_; }
+
   virtual void Close(
       v8::Local<v8::Value> close_callback = v8::Local<v8::Value>());
 
@@ -113,6 +115,7 @@ class HandleWrap : public AsyncWrap {
   friend int GenDebugSymbols();
   ListNode<HandleWrap> handle_wrap_queue_;
   uv_handle_t* const handle_;
+  uint64_t quiesce_generation_ = 0;
 };
 
 

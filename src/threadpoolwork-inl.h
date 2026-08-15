@@ -32,6 +32,8 @@ namespace node {
 
 void ThreadPoolWork::ScheduleWork() {
   env_->IncreaseWaitingRequestCounter();
+  quiesce_generation_ = env_->quiesce_generation();
+  env_->pool_works()->insert(this);
   TRACE_EVENT_NESTABLE_ASYNC_BEGIN0(
       TRACING_CATEGORY_NODE2(threadpoolwork, async), type_, this);
   int status = uv_queue_work(
@@ -48,6 +50,7 @@ void ThreadPoolWork::ScheduleWork() {
       [](uv_work_t* req, int status) {
         ThreadPoolWork* self = ContainerOf(&ThreadPoolWork::work_req_, req);
         self->env_->DecreaseWaitingRequestCounter();
+        self->env_->pool_works()->erase(self);
         TRACE_EVENT_NESTABLE_ASYNC_END1(
             TRACING_CATEGORY_NODE2(threadpoolwork, async),
             self->type_,

@@ -12,6 +12,7 @@ namespace node {
 ReqWrapBase::ReqWrapBase(Environment* env) {
   CHECK(env->has_run_bootstrapping_code());
   env->req_wrap_queue()->PushBack(this);
+  quiesce_generation_ = env->quiesce_generation();
 }
 
 template <typename T>

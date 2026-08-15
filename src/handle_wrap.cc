@@ -108,6 +108,7 @@ bool HandleWrap::IsNotIndicativeOfMemoryLeakAtExit() const {
 
 void HandleWrap::MarkAsInitialized() {
   env()->handle_wrap_queue()->PushBack(this);
+  quiesce_generation_ = env()->quiesce_generation();
   state_ = kInitialized;
 }
 
@@ -129,6 +130,7 @@ HandleWrap::HandleWrap(Environment* env,
   HandleScope scope(env->isolate());
   CHECK(env->has_run_bootstrapping_code());
   env->handle_wrap_queue()->PushBack(this);
+  quiesce_generation_ = env->quiesce_generation();
 }
 
 

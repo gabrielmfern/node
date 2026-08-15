@@ -19,12 +19,14 @@ class ReqWrapBase {
 
   virtual void Cancel() = 0;
   virtual AsyncWrap* GetAsyncWrap() = 0;
+  uint64_t quiesce_generation() const { return quiesce_generation_; }
 
  private:
   friend int GenDebugSymbols();
   friend class Environment;
 
   ListNode<ReqWrapBase> req_wrap_queue_;
+  uint64_t quiesce_generation_ = 0;
 };
 
 template <typename T>

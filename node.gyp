@@ -182,6 +182,7 @@
       'src/permission/permission.cc',
       'src/pipe_wrap.cc',
       'src/process_wrap.cc',
+      'src/node_quiesce.cc',
       'src/signal_wrap.cc',
       'src/spawn_sync.cc',
       'src/stream_base.cc',
