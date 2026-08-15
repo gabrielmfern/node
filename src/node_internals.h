@@ -308,11 +308,13 @@ class ThreadPoolWork {
   virtual void AfterThreadPoolWork(int status) = 0;
 
   Environment* env() const { return env_; }
+  uint64_t quiesce_generation() const { return quiesce_generation_; }
 
  private:
   Environment* env_;
   uv_work_t work_req_;
   const char* type_;
+  uint64_t quiesce_generation_ = 0;
 };
 
 #define TRACING_CATEGORY_NODE "node"

@@ -73,6 +73,8 @@
 
 namespace node {
 
+class ThreadPoolWork;
+
 namespace shadow_realm {
 class ShadowRealm;
 }
@@ -908,6 +910,14 @@ class Environment final : public MemoryRetainer {
   }
   inline ReqWrapQueue* req_wrap_queue() { return &req_wrap_queue_; }
 
+  inline uint64_t quiesce_generation() const { return quiesce_generation_; }
+  inline uint64_t BumpQuiesceGeneration() {
+    ++quiesce_generation_;
+    timeout_info()[1] = static_cast<int32_t>(quiesce_generation_);
+    return quiesce_generation_;
+  }
+  inline std::set<ThreadPoolWork*>* pool_works() { return &pool_works_; }
+
   // https://w3c.github.io/hr-time/#dfn-time-origin
   inline uint64_t time_origin() {
     return time_origin_;
@@ -1203,6 +1213,8 @@ class Environment final : public MemoryRetainer {
   ReqWrapQueue req_wrap_queue_;
   int handle_cleanup_waiting_ = 0;
   int request_waiting_ = 0;
+  uint64_t quiesce_generation_ = 0;
+  std::set<ThreadPoolWork*> pool_works_;
 
   EnabledDebugList enabled_debug_list_;
 

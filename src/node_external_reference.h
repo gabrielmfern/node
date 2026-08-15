@@ -93,6 +93,7 @@ class ExternalReferenceRegistry {
   V(performance)                                                               \
   V(permission)                                                                \
   V(process_methods)                                                           \
+  V(quiesce)                                                                   \
   V(process_object)                                                            \
   V(process_wrap)                                                              \
   V(report)                                                                    \
