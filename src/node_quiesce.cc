@@ -28,15 +28,21 @@ static void Checkpoint(const FunctionCallbackInfo<Value>& args) {
 }
 
 struct ForeignWalk {
-  v8::Isolate* isolate;
-  LocalVector<Value>* names;
+  Environment* env;
+  LocalVector<Value>* resources_info;
 };
 
 static void CountForeign(uv_handle_t* handle, void* arg) {
   auto* walk = static_cast<ForeignWalk*>(arg);
   if (handle->data == nullptr && !uv_is_closing(handle)) {
     std::string name = std::string("foreign:") + uv_handle_type_name(handle->type);
-    walk->names->emplace_back(OneByteString(walk->isolate, name.c_str()));
+
+    Local<Object> entry = Object::New(walk->env->isolate());
+    entry->Set(walk->env->context(), FIXED_ONE_BYTE_STRING(walk->env->isolate(), "type"),
+               OneByteString(walk->env->isolate(), name.c_str())).Check();
+    entry->Set(walk->env->context(), FIXED_ONE_BYTE_STRING(walk->env->isolate(), "asyncId"),
+               v8::Number::New(walk->env->isolate(), -1)).Check();
+    walk->resources_info->emplace_back(entry);
   }
 }
 
@@ -52,24 +58,36 @@ static void ReportNative(const FunctionCallbackInfo<Value>& args) {
     AsyncWrap* w = req_wrap->GetAsyncWrap();
     if (!w->persistent().IsEmpty() &&
         req_wrap->quiesce_generation() >= checkpoint) {
-      resources_info.emplace_back(
-          OneByteString(env->isolate(), w->MemoryInfoName()));
+      Local<Object> entry = Object::New(env->isolate());
+      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "type"),
+                 OneByteString(env->isolate(), w->MemoryInfoName())).Check();
+      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "asyncId"),
+                 v8::Number::New(env->isolate(), w->get_async_id())).Check();
+      resources_info.emplace_back(entry);
     }
   }
 
   // Active handles
   for (HandleWrap* w : *env->handle_wrap_queue()) {
     if (!w->persistent().IsEmpty() && w->quiesce_generation() >= checkpoint) {
-      resources_info.emplace_back(
-          OneByteString(env->isolate(), w->MemoryInfoName()));
+      Local<Object> entry = Object::New(env->isolate());
+      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "type"),
+                 OneByteString(env->isolate(), w->MemoryInfoName())).Check();
+      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "asyncId"),
+                 v8::Number::New(env->isolate(), w->get_async_id())).Check();
+      resources_info.emplace_back(entry);
     }
   }
 
   // These are created from napi addons
   for (ThreadPoolWork* w : *env->pool_works()) {
     if (w->quiesce_generation() >= checkpoint) {
-      resources_info.emplace_back(
-          FIXED_ONE_BYTE_STRING(env->isolate(), "ThreadPoolWork"));
+      Local<Object> entry = Object::New(env->isolate());
+      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "type"),
+                 OneByteString(env->isolate(), "ThreadPoolWork")).Check();
+      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "asyncId"),
+                 v8::Number::New(env->isolate(), -1)).Check();
+      resources_info.emplace_back(entry);
     }
   }
 
@@ -82,7 +100,7 @@ static void ReportNative(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  ForeignWalk walk{env->isolate(), &resources_info};
+  ForeignWalk walk{env, &resources_info};
   uv_walk(env->event_loop(), CountForeign, &walk);
 
   Local<Object> result = Object::New(env->isolate());
