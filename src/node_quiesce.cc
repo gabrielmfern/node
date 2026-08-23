@@ -8,6 +8,7 @@
 #include "v8.h"
 
 #include <string>
+#include <vector>
 
 namespace node {
 namespace quiesce {
@@ -15,6 +16,7 @@ namespace quiesce {
 using v8::Array;
 using v8::BigInt;
 using v8::Context;
+using v8::Function;
 using v8::FunctionCallbackInfo;
 using v8::Local;
 using v8::LocalVector;
@@ -35,13 +37,20 @@ struct ForeignWalk {
 static void CountForeign(uv_handle_t* handle, void* arg) {
   auto* walk = static_cast<ForeignWalk*>(arg);
   if (handle->data == nullptr && !uv_is_closing(handle)) {
-    std::string name = std::string("foreign:") + uv_handle_type_name(handle->type);
+    std::string name =
+        std::string("foreign:") + uv_handle_type_name(handle->type);
 
     Local<Object> entry = Object::New(walk->env->isolate());
-    entry->Set(walk->env->context(), FIXED_ONE_BYTE_STRING(walk->env->isolate(), "type"),
-               OneByteString(walk->env->isolate(), name.c_str())).Check();
-    entry->Set(walk->env->context(), FIXED_ONE_BYTE_STRING(walk->env->isolate(), "asyncId"),
-               v8::Number::New(walk->env->isolate(), -1)).Check();
+    entry
+        ->Set(walk->env->context(),
+              FIXED_ONE_BYTE_STRING(walk->env->isolate(), "type"),
+              OneByteString(walk->env->isolate(), name.c_str()))
+        .Check();
+    entry
+        ->Set(walk->env->context(),
+              FIXED_ONE_BYTE_STRING(walk->env->isolate(), "asyncId"),
+              v8::Number::New(walk->env->isolate(), -1))
+        .Check();
     walk->resources_info->emplace_back(entry);
   }
 }
@@ -59,10 +68,16 @@ static void ReportNative(const FunctionCallbackInfo<Value>& args) {
     if (!w->persistent().IsEmpty() &&
         req_wrap->quiesce_generation() >= checkpoint) {
       Local<Object> entry = Object::New(env->isolate());
-      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "type"),
-                 OneByteString(env->isolate(), w->MemoryInfoName())).Check();
-      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "asyncId"),
-                 v8::Number::New(env->isolate(), w->get_async_id())).Check();
+      entry
+          ->Set(env->context(),
+                FIXED_ONE_BYTE_STRING(env->isolate(), "type"),
+                OneByteString(env->isolate(), w->MemoryInfoName()))
+          .Check();
+      entry
+          ->Set(env->context(),
+                FIXED_ONE_BYTE_STRING(env->isolate(), "asyncId"),
+                v8::Number::New(env->isolate(), w->get_async_id()))
+          .Check();
       resources_info.emplace_back(entry);
     }
   }
@@ -71,10 +86,16 @@ static void ReportNative(const FunctionCallbackInfo<Value>& args) {
   for (HandleWrap* w : *env->handle_wrap_queue()) {
     if (!w->persistent().IsEmpty() && w->quiesce_generation() >= checkpoint) {
       Local<Object> entry = Object::New(env->isolate());
-      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "type"),
-                 OneByteString(env->isolate(), w->MemoryInfoName())).Check();
-      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "asyncId"),
-                 v8::Number::New(env->isolate(), w->get_async_id())).Check();
+      entry
+          ->Set(env->context(),
+                FIXED_ONE_BYTE_STRING(env->isolate(), "type"),
+                OneByteString(env->isolate(), w->MemoryInfoName()))
+          .Check();
+      entry
+          ->Set(env->context(),
+                FIXED_ONE_BYTE_STRING(env->isolate(), "asyncId"),
+                v8::Number::New(env->isolate(), w->get_async_id()))
+          .Check();
       resources_info.emplace_back(entry);
     }
   }
@@ -83,10 +104,16 @@ static void ReportNative(const FunctionCallbackInfo<Value>& args) {
   for (ThreadPoolWork* w : *env->pool_works()) {
     if (w->quiesce_generation() >= checkpoint) {
       Local<Object> entry = Object::New(env->isolate());
-      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "type"),
-                 OneByteString(env->isolate(), "ThreadPoolWork")).Check();
-      entry->Set(env->context(), FIXED_ONE_BYTE_STRING(env->isolate(), "asyncId"),
-                 v8::Number::New(env->isolate(), -1)).Check();
+      entry
+          ->Set(env->context(),
+                FIXED_ONE_BYTE_STRING(env->isolate(), "type"),
+                OneByteString(env->isolate(), "ThreadPoolWork"))
+          .Check();
+      entry
+          ->Set(env->context(),
+                FIXED_ONE_BYTE_STRING(env->isolate(), "asyncId"),
+                v8::Number::New(env->isolate(), -1))
+          .Check();
       resources_info.emplace_back(entry);
     }
   }
@@ -138,10 +165,48 @@ static void QuiesceNative(const FunctionCallbackInfo<Value>& args) {
   }
 
   // Active handles
+  std::vector<HandleWrap*> handles;
   for (HandleWrap* w : *env->handle_wrap_queue()) {
     if (!w->persistent().IsEmpty() && HandleWrap::IsAlive(w) &&
         w->quiesce_generation() >= checkpoint) {
-      w->Close();
+      handles.push_back(w);
+    }
+  }
+  for (HandleWrap* w : handles) {
+    if (HandleWrap::IsAlive(w) && !uv_is_closing(w->GetHandle())) {
+      Local<Value> owner;
+      if (w->object()
+              ->Get(env->context(), env->owner_symbol())
+              .ToLocal(&owner) &&
+          owner->IsObject()) {
+        Local<Value> fn;
+        if (owner.As<Object>()
+                ->Get(env->context(), OneByteString(env->isolate(), "destroy"))
+                .ToLocal(&fn) &&
+            fn->IsFunction()) {
+          USE(fn.As<Function>()->Call(env->context(), owner, 0, nullptr));
+        } else if (owner.As<Object>()
+                       ->Get(env->context(),
+                             OneByteString(env->isolate(), "close"))
+                       .ToLocal(&fn) &&
+                   fn->IsFunction()) {
+          USE(fn.As<Function>()->Call(env->context(), owner, 0, nullptr));
+        } else if (owner.As<Object>()
+                       ->Get(env->context(),
+                             OneByteString(env->isolate(), "kill"))
+                       .ToLocal(&fn) &&
+                   fn->IsFunction()) {
+          USE(fn.As<Function>()->Call(env->context(), owner, 0, nullptr));
+        } else {
+          // I don't know if the best idea here is to clean this up, since it can
+          // cause more use after free and double free like it did before this.
+          //
+          // We should call the individual destructors for the handles of things
+          // that were created.
+
+          // w->Close();
+        }
+      }
     }
   }
 
