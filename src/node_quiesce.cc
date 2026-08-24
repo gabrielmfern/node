@@ -203,8 +203,7 @@ static void QuiesceNative(const FunctionCallbackInfo<Value>& args) {
           //
           // We should call the individual destructors for the handles of things
           // that were created.
-
-          // w->Close();
+          w->Close();
         }
       }
     }
