@@ -105,6 +105,7 @@ class SignalWrap : public HandleWrap {
   static void Start(const FunctionCallbackInfo<Value>& args) {
     SignalWrap* wrap;
     ASSIGN_OR_RETURN_UNWRAP(&wrap, args.This());
+    if (wrap->IsHandleClosing()) return args.GetReturnValue().Set(UV_EBADF);
     Environment* env = wrap->env();
     int signum;
     if (!args[0]->Int32Value(env->context()).To(&signum)) return;

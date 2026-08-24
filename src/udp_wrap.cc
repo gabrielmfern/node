@@ -300,6 +300,7 @@ void UDPWrap::DoBind(const FunctionCallbackInfo<Value>& args, int family) {
   UDPWrap* wrap;
   ASSIGN_OR_RETURN_UNWRAP(
       &wrap, args.This(), args.GetReturnValue().Set(UV_EBADF));
+  if (wrap->IsHandleClosing()) return args.GetReturnValue().Set(UV_EBADF);
 
   // bind(ip, port, flags)
   CHECK_EQ(args.Length(), 3);
@@ -329,6 +330,7 @@ void UDPWrap::DoConnect(const FunctionCallbackInfo<Value>& args, int family) {
   UDPWrap* wrap;
   ASSIGN_OR_RETURN_UNWRAP(
       &wrap, args.This(), args.GetReturnValue().Set(UV_EBADF));
+  if (wrap->IsHandleClosing()) return args.GetReturnValue().Set(UV_EBADF);
 
   CHECK_EQ(args.Length(), 2);
 
@@ -352,6 +354,7 @@ void UDPWrap::Open(const FunctionCallbackInfo<Value>& args) {
   UDPWrap* wrap;
   ASSIGN_OR_RETURN_UNWRAP(
       &wrap, args.This(), args.GetReturnValue().Set(UV_EBADF));
+  if (wrap->IsHandleClosing()) return args.GetReturnValue().Set(UV_EBADF);
   CHECK(args[0]->IsNumber());
   int fd = FromV8Value<int>(args[0]);
   int err = uv_udp_open(&wrap->handle_, fd);
@@ -520,6 +523,7 @@ void UDPWrap::DoSend(const FunctionCallbackInfo<Value>& args, int family) {
   UDPWrap* wrap;
   ASSIGN_OR_RETURN_UNWRAP(
       &wrap, args.This(), args.GetReturnValue().Set(UV_EBADF));
+  if (wrap->IsHandleClosing()) return args.GetReturnValue().Set(UV_EBADF);
 
   CHECK(args.Length() == 4 || args.Length() == 6);
   CHECK(args[0]->IsObject());
