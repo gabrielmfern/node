@@ -369,6 +369,7 @@ void TCPWrap::Open(const FunctionCallbackInfo<Value>& args) {
   TCPWrap* wrap;
   ASSIGN_OR_RETURN_UNWRAP(
       &wrap, args.This(), args.GetReturnValue().Set(UV_EBADF));
+  if (wrap->IsHandleClosing()) return args.GetReturnValue().Set(UV_EBADF);
   int64_t val;
   if (!args[0]->IntegerValue(args.GetIsolate()->GetCurrentContext()).To(&val))
     return;
@@ -483,6 +484,7 @@ void TCPWrap::Bind(const FunctionCallbackInfo<Value>& args,
   TCPWrap* wrap;
   ASSIGN_OR_RETURN_UNWRAP(
       &wrap, args.This(), args.GetReturnValue().Set(UV_EBADF));
+  if (wrap->IsHandleClosing()) return args.GetReturnValue().Set(UV_EBADF);
   Environment* env = wrap->env();
 
   THROW_IF_INSUFFICIENT_PERMISSIONS(env, permission::PermissionScope::kNet, "");
@@ -521,6 +523,7 @@ void TCPWrap::Listen(const FunctionCallbackInfo<Value>& args) {
   TCPWrap* wrap;
   ASSIGN_OR_RETURN_UNWRAP(
       &wrap, args.This(), args.GetReturnValue().Set(UV_EBADF));
+  if (wrap->IsHandleClosing()) return args.GetReturnValue().Set(UV_EBADF);
   Environment* env = wrap->env();
   int backlog;
   if (!args[0]->Int32Value(env->context()).To(&backlog)) return;
@@ -550,6 +553,7 @@ void TCPWrap::Connect(const FunctionCallbackInfo<Value>& args,
   TCPWrap* wrap;
   ASSIGN_OR_RETURN_UNWRAP(
       &wrap, args.This(), args.GetReturnValue().Set(UV_EBADF));
+  if (wrap->IsHandleClosing()) return args.GetReturnValue().Set(UV_EBADF);
 
   CHECK(args[0]->IsObject());
   CHECK(args[1]->IsString());

@@ -195,6 +195,7 @@ class ProcessWrap : public HandleWrap {
     Local<Context> context = env->context();
     ProcessWrap* wrap;
     ASSIGN_OR_RETURN_UNWRAP(&wrap, args.This());
+    if (wrap->IsHandleClosing()) return args.GetReturnValue().Set(UV_EBADF);
     int err = 0;
 
     uv_process_options_t options;
