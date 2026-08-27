@@ -1477,6 +1477,8 @@ AsyncHooksGetExecutionAsyncId(v8::Local<v8::Context> context);
 /* Return same value as async_hooks.triggerAsyncId(); */
 NODE_EXTERN async_id AsyncHooksGetTriggerAsyncId(v8::Isolate* isolate);
 
+NODE_EXTERN void AsyncHooksClearAsyncIdStack(Environment* env);
+
 /* If the native API doesn't inherit from the helper class then the callbacks
  * must be triggered manually. This triggers the init() callback. The return
  * value is the async id assigned to the resource.
