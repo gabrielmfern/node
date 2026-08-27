@@ -208,6 +208,10 @@ async_id AsyncHooksGetTriggerAsyncId(Isolate* isolate) {
   return env->trigger_async_id();
 }
 
+void AsyncHooksClearAsyncIdStack(Environment* env) {
+  env->async_hooks()->clear_async_id_stack();
+}
+
 
 async_context EmitAsyncInit(Isolate* isolate,
                             Local<Object> resource,
