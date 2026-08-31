@@ -1,0 +1,21 @@
+src/env-inl.h
+  s_640119089fc47f::t_07d582bd2a43b1 305-310
+src/env.h
+  s_640119089fc47f::t_89c9c92fb7cb7f 935
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "06ee1b88d5e3982cdd768dc4aba2f5f472ad171c",
+  "prompts": {},
+  "sessions": {
+    "s_640119089fc47f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "94c7efe8-e3db-4ab9-bfbc-71c0435e1cb0",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Gabriel Miranda <gabrielmfern@outlook.com>"
+    }
+  }
+}
