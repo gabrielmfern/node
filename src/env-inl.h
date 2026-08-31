@@ -294,6 +294,12 @@ inline AliasedInt32Array& Environment::timeout_info() {
   return timeout_info_;
 }
 
+inline uint64_t Environment::BumpQuiesceGeneration() {
+  ++quiesce_generation_;
+  timeout_info()[1] = static_cast<int32_t>(quiesce_generation_);
+  return quiesce_generation_;
+}
+
 inline TickInfo* Environment::tick_info() {
   return &tick_info_;
 }
