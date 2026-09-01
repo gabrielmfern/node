@@ -1103,6 +1103,13 @@ void Environment::InitializeLibuv() {
   uv_unref(reinterpret_cast<uv_handle_t*>(&idle_check_handle_));
   uv_unref(reinterpret_cast<uv_handle_t*>(&task_queues_async_));
 
+  timer_handle_.data = this;
+  immediate_check_handle_.data = this;
+  immediate_idle_handle_.data = this;
+  idle_prepare_handle_.data = this;
+  idle_check_handle_.data = this;
+  task_queues_async_.data = this;
+
   {
     Mutex::ScopedLock lock(native_immediates_threadsafe_mutex_);
     task_queues_async_initialized_ = true;
