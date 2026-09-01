@@ -118,7 +118,7 @@ void InternalCallbackScope::Close() {
   // async id stack or pop the topmost one from it
 
   auto perform_stopping_check = [&]() {
-    if (env_->is_stopping()) {
+    if (env_->is_stopping() || env_->isolate()->IsExecutionTerminating()) {
       MarkAsFailed();
       env_->async_hooks()->clear_async_id_stack();
     }
